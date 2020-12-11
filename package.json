@@ -1,0 +1,19 @@
+{
+  "name": "mech-notifier",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^12.5.1",
+    "dotenv": "^8.2.0",
+    "pg": "^8.5.1",
+    "snoostorm": "^1.5.0",
+    "snoowrap": "^1.21.0"
+  }
+}
