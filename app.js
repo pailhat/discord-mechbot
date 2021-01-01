@@ -113,7 +113,6 @@ bot.on("ready", async () => {
                     //The bot will only message you if you're in a common server and have DMs turned on for server members
                     const user = await bot.users.fetch(row.user_id_id);
 
-
                     let alert_origin = row.origin ? row.origin : "";
                     let alert_has = row.has ? row.has : "";
                     let alert_wants = row.wants ? row.wants : "";
@@ -179,20 +178,27 @@ bot.on("guildMemberAdd", async (member) => {
 
 // When someone leaves the server set the can_dm flag to false
 bot.on("guildMemberRemove", (member) => {
-    console.log("Guilde Member Left: ");
-    console.log(member.user.username);
+    let updateQuery = "UPDATE mechbot_discorduser SET can_dm = false WHERE id = " + member.user.id;
+    client.query(updateQuery, async (err, res) => {
+        console.log("Updated can_dm flag to 'true' in DB for " + member.user.username + "#" + member.user.discriminator)
+    });
 });
 
 
 // When someone updates their username or avatar, update it in the DB too
 bot.on("userUpdate", (oldUser, newUser) => {
-    //When a user updates their username we need to update their username too
-    console.log("USER UPDATE");
-    console.log("OLD: ");
-    console.log(oldUser);
-    console.log("NEW:");
-    console.log(newUser);
+    //When a user updates themselves chekc if their usrname/avatar changed, and if they did update it in the DB
+    if (oldUser.discriminator != newUser.discriminator || oldUser.username != newUser.username || oldUser.avatar != newUser.avatar) {
+        //Update the Db with the new stuff
+        let updateQuery = "UPDATE mechbot_discorduser SET username = '" + newUser.username + "#" + newUser.discriminator + "', avatar = '" + newUser.avatar + "' WHERE id = " + oldUser.id;
+        client.query(updateQuery, async (err, res) => {
+            console.log("Updated user avatar and username/discriminator for " + newUser.username + "#" + newUser.discriminator);
+        });
+    }
 });
 
+bot.on("messageReactionAdd", (messageReaction, user) => {
+    // Check if they've signed up on the site, if they have message them tell em theyre good.
+});
 bot.login(process.env.DISCORD_TOKEN);
 
