@@ -136,5 +136,63 @@ bot.on("ready", async () => {
     });
 });
 
+// When someone joins the server:
+// - Assign them an unverified role that blocks them from seeing the server. Verify that they registered on the site with discord 
+//   and remove the blocker role if they are. (Server join requrements should be restrictive so I don't get ddosed from someone spam joining new accounts)
+// - Try to DM them, if it works then set the can_dm flag to true
+bot.on("guildMemberAdd", async (member) => {
+    // Assign unregistered role so that people that join the server are actually registered for the thing
+    let query = "SELECT COUNT(*) as count from mechbot_discorduser where id = " + member.user.id;
+    client.query(query, async (err, res) => {
+        if (res.rows.pop().count == 0) {
+            // User has not signed up so give them the unregistered role. They will only be able to see the welcome channel.
+            member.roles.add("793344574226825216");
+            console.log("New member is not registered yet...!")
+            // Try to create a DM channel
+            try {
+                member.user.send("Welcome! \n\nLink your discord account to me at https://mechbot.panamahat.dev to set up and begin recieving alerts.");
+            } catch (e) {
+                console.log('Failed to send message to unregistered user.');
+                // Warn the user with a ping in the warnings channel
+                
+            }
+        } else {
+            // If they've signed up give them the registered role.
+            member.roles.add("793354360893341717");
+            console.log("New member is registered")
+            // Try to create a DM channel
+            try {
+                member.user.send("You're all set to recieve alerts! Set them up at https://mechbot.staging.panamahat.dev/alerts");
+                // Update can_dm to True for this user so they don't receive that notification
+                let updateQuery = "UPDATE mechbot_discorduser SET can_dm = true WHERE id = " + member.user.id;
+                client.query(updateQuery, async (err, res) => {
+                    console.log("Updated can_dm flag to 'true' in DB for " + member.user.username + "#" + member.user.discriminator)
+                });
+            } catch (e) {
+                console.log("Failed to send message to registered user.");
+                // Warn user with a ping in the warnings channel
+                
+            }
+        }
+    });
+});
+
+// When someone leaves the server set the can_dm flag to false
+bot.on("guildMemberRemove", (member) => {
+    console.log("Guilde Member Left: ");
+    console.log(member.user.username);
+});
+
+
+// When someone updates their username or avatar, update it in the DB too
+bot.on("userUpdate", (oldUser, newUser) => {
+    //When a user updates their username we need to update their username too
+    console.log("USER UPDATE");
+    console.log("OLD: ");
+    console.log(oldUser);
+    console.log("NEW:");
+    console.log(newUser);
+});
+
 bot.login(process.env.DISCORD_TOKEN);
 
