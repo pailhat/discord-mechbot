@@ -131,8 +131,7 @@ bot.on("ready", async () => {
 
 
 // When someone joins the server:
-// - Assign them an unverified role that blocks them from seeing the server. Verify that they registered on the site with discord 
-//   and remove the blocker role if they are. (Server join requrements should be restrictive so I don't get ddosed from someone spam joining new accounts)
+// - Assign them an unverified role that blocks them from seeing the server channels if theyre not registered on the site with discord 
 // - Try to DM them, if it works then set the can_dm flag to true
 bot.on("guildMemberAdd", async (member) => {
     // Assign unregistered role so that people that join the server are actually registered for the thing
@@ -149,7 +148,12 @@ bot.on("guildMemberAdd", async (member) => {
         } else {
             member.roles.add(process.env.ROLE_ID_REGISTERED);
             console.log("New member is registered")
-            member.user.send("Welcome!\n\nYou're all set to recieve MechMarket alerts! Set them up at https://mechbot.panamahat.dev/alerts").catch(error => {
+            member.user.send("Welcome!\n\nYou're all set to recieve MechMarket alerts! Set them up at https://mechbot.panamahat.dev/alerts").then(message => {
+                let updateQuery = "UPDATE mechbot_discorduser SET can_dm = true WHERE id = " + member.user.id;
+                client.query(updateQuery, async (err, res) => {
+                    console.log("Updated can_dm flag to 'true' in DB for " + member.user.username + "#" + member.user.discriminator)
+                });
+            }).catch(error => {
                 console.log('Failed to send message to registered user.');
                 bot.channels.cache.get(process.env.CHANNEL_ID_CANT_DM_YOU).send('Welcome <@' + member.user.id + '>! I wasn\'t able to DM you, make sure that in the server Privacy Settings you\'ve allowed direct messages from server members. Once you\'ve done that you\'re all set to receive MechMarket alerts!');
             });
