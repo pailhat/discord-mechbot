@@ -183,7 +183,8 @@ bot.on("userUpdate", (oldUser, newUser) => {
 });
 
 bot.on("messageReactionAdd", (messageReaction, user) => {
-    // Check if they've signed up on the site, if they have message them tell em theyre good.
+    // Allow users to delete their warning messages in the "cant-dm you" channel for privacy
+    // Auto remove reactions from users that are not tagged in the message
 });
 bot.login(process.env.DISCORD_TOKEN);
 
