@@ -139,20 +139,16 @@ bot.on("guildMemberAdd", async (member) => {
     let query = "SELECT COUNT(*) as count from mechbot_discorduser where id = " + member.user.id;
     client.query(query, async (err, res) => {
         if (res.rows.pop().count == 0) {
-            // User has not signed up so give them the unregistered role. They will only be able to see the welcome channel.
             member.roles.add(process.env.ROLE_ID_UNREGISTERED);
             console.log("New member is not registered yet...!")
-
             member.user.send("Welcome!\n\nLink your discord account to me at https://mechbot.panamahat.dev to set up your MechMarket alerts (MechBot only collects your Discord ID and username).").catch(error => {
                 console.log('Failed to send message to unregistered user.');
                 bot.channels.cache.get(process.env.CHANNEL_ID_CANT_DM_YOU).send('Welcome <@' + member.user.id + '>! I wasn\'t able to DM you, make sure that in the server Privacy Settings you\'ve allowed direct messages from server members. Once you\'ve done that, link your discord account at https://mechbot.panamahat.dev to set up your MechMarket alerts (MechBot only collects your Discord ID and username).');
             });
 
         } else {
-            // If they've signed up give them the registered role.
             member.roles.add(process.env.ROLE_ID_REGISTERED);
             console.log("New member is registered")
-
             member.user.send("Welcome!\n\nYou're all set to recieve MechMarket alerts! Set them up at https://mechbot.panamahat.dev/alerts").catch(error => {
                 console.log('Failed to send message to registered user.');
                 bot.channels.cache.get(process.env.CHANNEL_ID_CANT_DM_YOU).send('Welcome <@' + member.user.id + '>! I wasn\'t able to DM you, make sure that in the server Privacy Settings you\'ve allowed direct messages from server members. Once you\'ve done that you\'re all set to receive MechMarket alerts!');
