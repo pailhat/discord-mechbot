@@ -100,7 +100,7 @@ bot.on("ready", async () => {
             return;
         }
         // Post it to the mechmarket feed channel
-        bot.channels.cache.get(process.env.MM_FEED_CHANNEL_ID).send(post_title + "\n" + post.url + "\n<@&" + process.env.MM_FEED_ROLE_ID + ">");
+        bot.channels.cache.get(process.env.CHANNEL_ID_MM_FEED).send(post_title + "\n" + post.url + "\n<@&" + process.env.ROLE_ID_MM_WATCHER + ">");
 
         client.query(query, async (err, res) => {
             if (err) {
@@ -140,22 +140,22 @@ bot.on("guildMemberAdd", async (member) => {
     client.query(query, async (err, res) => {
         if (res.rows.pop().count == 0) {
             // User has not signed up so give them the unregistered role. They will only be able to see the welcome channel.
-            member.roles.add("793344574226825216");
+            member.roles.add(process.env.ROLE_ID_UNREGISTERED);
             console.log("New member is not registered yet...!")
 
             member.user.send("Welcome!\n\nLink your discord account to me at https://mechbot.panamahat.dev to set up your MechMarket alerts (MechBot only collects your Discord ID and username).").catch(error => {
                 console.log('Failed to send message to unregistered user.');
-                bot.channels.cache.get('794788326800490567').send('Welcome <@' + member.user.id + '>! I wasn\'t able to DM you, make sure that in the server Privacy Settings you\'ve allowed direct messages from server members. Once you\'ve done that, link your discord account at https://mechbot.panamahat.dev to set up your MechMarket alerts (MechBot only collects your Discord ID and username).');
+                bot.channels.cache.get(process.env.CHANNEL_ID_CANT_DM_YOU).send('Welcome <@' + member.user.id + '>! I wasn\'t able to DM you, make sure that in the server Privacy Settings you\'ve allowed direct messages from server members. Once you\'ve done that, link your discord account at https://mechbot.panamahat.dev to set up your MechMarket alerts (MechBot only collects your Discord ID and username).');
             });
 
         } else {
             // If they've signed up give them the registered role.
-            member.roles.add("793354360893341717");
+            member.roles.add(process.env.ROLE_ID_REGISTERED);
             console.log("New member is registered")
 
             member.user.send("Welcome!\n\nYou're all set to recieve MechMarket alerts! Set them up at https://mechbot.panamahat.dev/alerts").catch(error => {
                 console.log('Failed to send message to registered user.');
-                bot.channels.cache.get('794788326800490567').send('Welcome <@' + member.user.id + '>! I wasn\'t able to DM you, make sure that in the server Privacy Settings you\'ve allowed direct messages from server members. Once you\'ve done that you\'re all set to receive MechMarket alerts!');
+                bot.channels.cache.get(process.env.CHANNEL_ID_CANT_DM_YOU).send('Welcome <@' + member.user.id + '>! I wasn\'t able to DM you, make sure that in the server Privacy Settings you\'ve allowed direct messages from server members. Once you\'ve done that you\'re all set to receive MechMarket alerts!');
             });
         }
     });
@@ -186,5 +186,7 @@ bot.on("messageReactionAdd", (messageReaction, user) => {
     // Allow users to delete their warning messages in the "cant-dm you" channel for privacy
     // Auto remove reactions from users that are not tagged in the message
 });
+
+//
 bot.login(process.env.DISCORD_TOKEN);
 
