@@ -109,31 +109,26 @@ bot.on("ready", async () => {
                 return;
             }
             for (let row of res.rows) {
-                try {
-                    //The bot will only message you if you're in a common server and have DMs turned on for server members
-                    const user = await bot.users.fetch(row.user_id_id);
+                //The bot will only message you if you're in a common server and have DMs turned on for server members
+                const user = await bot.users.fetch(row.user_id_id);
 
-                    let alert_origin = row.origin ? row.origin : "";
-                    let alert_has = row.has ? row.has : "";
-                    let alert_wants = row.wants ? row.wants : "";
-                    if (post_origin.includes(alert_origin) && post_has.toLowerCase().includes(alert_has.toLowerCase()) && post_wants.toLowerCase().includes(alert_wants.toLowerCase())) {
-                        let message = "**Origin:** " + (alert_origin == "" ? "*Any*" : alert_origin) + " **[H]** " + (alert_has == "" ? "*Any*" : alert_has) + " **[W]** " + (alert_wants == "" ? "*Any*" : alert_wants) + "\n\n" + post_title + '\n' + post.url + '\n';
-                        user.send(message);
-                        console.log("SENT MESSAGE TO: " + user.username + "#" + user.discriminator);
-                        console.log(message);
-                    }
-
+                let alert_origin = row.origin ? row.origin : "";
+                let alert_has = row.has ? row.has : "";
+                let alert_wants = row.wants ? row.wants : "";
+                if (post_origin.includes(alert_origin) && post_has.toLowerCase().includes(alert_has.toLowerCase()) && post_wants.toLowerCase().includes(alert_wants.toLowerCase())) {
+                    let message = "**Origin:** " + (alert_origin == "" ? "*Any*" : alert_origin) + " **[H]** " + (alert_has == "" ? "*Any*" : alert_has) + " **[W]** " + (alert_wants == "" ? "*Any*" : alert_wants) + "\n\n" + post_title + '\n' + post.url + '\n';
+                    user.send(message).catch(error => {
+                        console.log("UNABLE TO MESSAGE: " + user.username + "#" + user.discriminator);
+                    });
+                    console.log("SENT MESSAGE TO: " + user.username + "#" + user.discriminator);
+                    console.log(message);
                 }
-                catch (e) {
-                    console.log("Unable to message user " + row.user_id_id + " for alert " + row.id);
-                    console.log(e);
-                }
-
             }
         });
 
     });
 });
+
 
 // When someone joins the server:
 // - Assign them an unverified role that blocks them from seeing the server. Verify that they registered on the site with discord 
@@ -147,31 +142,21 @@ bot.on("guildMemberAdd", async (member) => {
             // User has not signed up so give them the unregistered role. They will only be able to see the welcome channel.
             member.roles.add("793344574226825216");
             console.log("New member is not registered yet...!")
-            // Try to create a DM channel
-            try {
-                member.user.send("Welcome! \n\nLink your discord account to me at https://mechbot.panamahat.dev to set up and begin recieving alerts.");
-            } catch (e) {
+
+            member.user.send("Welcome!\n\nLink your discord account to me at https://mechbot.panamahat.dev to set up your MechMarket alerts (MechBot only collects your Discord ID and username).").catch(error => {
                 console.log('Failed to send message to unregistered user.');
-                // Warn the user with a ping in the warnings channel
-                
-            }
+                bot.channels.cache.get('794788326800490567').send('Welcome <@' + member.user.id + '>! I wasn\'t able to DM you, make sure that in the server Privacy Settings you\'ve allowed direct messages from server members. Once you\'ve done that, link your discord account at https://mechbot.panamahat.dev to set up your MechMarket alerts (MechBot only collects your Discord ID and username).');
+            });
+
         } else {
             // If they've signed up give them the registered role.
             member.roles.add("793354360893341717");
             console.log("New member is registered")
-            // Try to create a DM channel
-            try {
-                member.user.send("You're all set to recieve alerts! Set them up at https://mechbot.staging.panamahat.dev/alerts");
-                // Update can_dm to True for this user so they don't receive that notification
-                let updateQuery = "UPDATE mechbot_discorduser SET can_dm = true WHERE id = " + member.user.id;
-                client.query(updateQuery, async (err, res) => {
-                    console.log("Updated can_dm flag to 'true' in DB for " + member.user.username + "#" + member.user.discriminator)
-                });
-            } catch (e) {
-                console.log("Failed to send message to registered user.");
-                // Warn user with a ping in the warnings channel
-                
-            }
+
+            member.user.send("Welcome!\n\nYou're all set to recieve MechMarket alerts! Set them up at https://mechbot.panamahat.dev/alerts").catch(error => {
+                console.log('Failed to send message to registered user.');
+                bot.channels.cache.get('794788326800490567').send('Welcome <@' + member.user.id + '>! I wasn\'t able to DM you, make sure that in the server Privacy Settings you\'ve allowed direct messages from server members. Once you\'ve done that you\'re all set to receive MechMarket alerts!');
+            });
         }
     });
 });
@@ -180,7 +165,7 @@ bot.on("guildMemberAdd", async (member) => {
 bot.on("guildMemberRemove", (member) => {
     let updateQuery = "UPDATE mechbot_discorduser SET can_dm = false WHERE id = " + member.user.id;
     client.query(updateQuery, async (err, res) => {
-        console.log("Updated can_dm flag to 'true' in DB for " + member.user.username + "#" + member.user.discriminator)
+        console.log("User left the server: " + member.user.username + "#" + member.user.discriminator)
     });
 });
 
