@@ -48,6 +48,8 @@ FROM mechbot_alert
 WHERE enabled=true
 `;
 
+const VERIFY_STRING = "verify";
+
 const bot = new Discord.Client();
 
 const r = new Snoowrap({
@@ -133,29 +135,29 @@ bot.on("ready", async () => {
 // When someone joins the server:
 // - Assign them an unverified role that blocks them from seeing the server channels if theyre not registered on the site with discord 
 // - Try to DM them, if it works then set the can_dm flag to true
-bot.on("guildMemberAdd", async (member) => {
+bot.on("guildMemberAdd", (member) => {
     // Assign unregistered role so that people that join the server are actually registered for the thing
     let query = "SELECT COUNT(*) as count from mechbot_discorduser where id = " + member.user.id;
-    client.query(query, async (err, res) => {
+    client.query(query, (err, res) => {
         if (res.rows.pop().count == 0) {
             member.roles.add(process.env.ROLE_ID_UNREGISTERED);
             console.log("New member is not registered yet...!")
-            member.user.send("Welcome!\n\nLink your discord account to me at https://mechbot.panamahat.dev to set up your MechMarket alerts (MechBot only collects your Discord ID and username).").catch(error => {
+            member.user.send("Welcome!\nLink your discord account to me at https://mechbot.panamahat.dev to set up your MechMarket alerts (MechBot only collects your Discord ID and username).").catch(error => {
                 console.log('Failed to send message to unregistered user.');
-                bot.channels.cache.get(process.env.CHANNEL_ID_CANT_DM_YOU).send('Welcome <@' + member.user.id + '>! I wasn\'t able to DM you, make sure that in the server Privacy Settings you\'ve allowed direct messages from server members. Once you\'ve done that, link your discord account at https://mechbot.panamahat.dev to set up your MechMarket alerts (MechBot only collects your Discord ID and username).');
+                bot.channels.cache.get(process.env.CHANNEL_ID_CANT_DM_YOU).send('Welcome <@' + member.user.id + '>!\n**I wasn\'t able to DM you so I can\'t send you alerts**, make sure that in the server Privacy Settings you\'ve allowed direct messages from server members. Once you\'ve done that, link your discord account at https://mechbot.panamahat.dev to set up your MechMarket alerts (MechBot only collects your Discord ID and username).');
             });
 
         } else {
             member.roles.add(process.env.ROLE_ID_REGISTERED);
             console.log("New member is registered")
-            member.user.send("Welcome!\n\nYou're all set to recieve MechMarket alerts! Set them up at https://mechbot.panamahat.dev/alerts").then(message => {
+            member.user.send("Welcome!\nYou're all set to recieve MechMarket alerts! Set them up at https://mechbot.panamahat.dev/alerts").then(message => {
                 let updateQuery = "UPDATE mechbot_discorduser SET can_dm = true WHERE id = " + member.user.id;
-                client.query(updateQuery, async (err, res) => {
+                client.query(updateQuery, (err, res) => {
                     console.log("Updated can_dm flag to 'true' in DB for " + member.user.username + "#" + member.user.discriminator)
                 });
             }).catch(error => {
                 console.log('Failed to send message to registered user.');
-                bot.channels.cache.get(process.env.CHANNEL_ID_CANT_DM_YOU).send('Welcome <@' + member.user.id + '>! I wasn\'t able to DM you, make sure that in the server Privacy Settings you\'ve allowed direct messages from server members. Once you\'ve done that you\'re all set to receive MechMarket alerts!');
+                bot.channels.cache.get(process.env.CHANNEL_ID_CANT_DM_YOU).send('Welcome <@' + member.user.id + '>!\n**I wasn\'t able to DM you so I can\'t send you alerts**, make sure that in the server Privacy Settings you\'ve allowed direct messages from server members. Once you\'ve done that you\'re all set to receive MechMarket alerts!');
             });
         }
     });
@@ -164,7 +166,7 @@ bot.on("guildMemberAdd", async (member) => {
 // When someone leaves the server set the can_dm flag to false
 bot.on("guildMemberRemove", (member) => {
     let updateQuery = "UPDATE mechbot_discorduser SET can_dm = false WHERE id = " + member.user.id;
-    client.query(updateQuery, async (err, res) => {
+    client.query(updateQuery, (err, res) => {
         console.log("User left the server: " + member.user.username + "#" + member.user.discriminator)
     });
 });
@@ -182,9 +184,40 @@ bot.on("userUpdate", (oldUser, newUser) => {
     }
 });
 
-bot.on("messageReactionAdd", (messageReaction, user) => {
-    // Allow users to delete their warning messages in the "cant-dm you" channel for privacy
-    // Auto remove reactions from users that are not tagged in the message
+// 
+bot.on("message", async (message) => {
+    //if (message.author.bot) return;
+    // If they post in the verify channel "!verify" then mechbot will check if they've registered.
+    // If they've registered then they'll be able to see the rest of the server and the verify channel will be hidden so noon spams it.
+    // Channel will be set to slow mode and only allow messages every 15 seconds
+    if (message.channel.id == process.env.CHANNEL_ID_VERIFY) {
+        if (message.content == VERIFY_STRING) {
+            let query = "SELECT COUNT(*) as count from mechbot_discorduser where id = " + message.member.user.id;
+            client.query(query, (err, res) => {
+                if (res.rows.pop().count == 0) {
+                    console.log("New member is not registered yet...!")
+                    message.member.user.send("Failed to verify :(,\nLink your discord account to me at https://mechbot.panamahat.dev first (MechBot only collects your Discord ID and username).").catch(error => {
+                        console.log('Failed to send message to unregistered user.');
+                    });
+        
+                } else {
+                    message.member.roles.remove(process.env.ROLE_ID_UNREGISTERED);
+                    message.member.roles.add(process.env.ROLE_ID_REGISTERED);      
+                    console.log("New member is registered")
+                    message.member.user.send("You're verified!\nSet up your alerts at https://mechbot.panamahat.dev/alerts").then(message => {
+                        let updateQuery = "UPDATE mechbot_discorduser SET can_dm = true WHERE id = " + message.channel.recipient.id;
+                        client.query(updateQuery, async (err, res) => {
+                            console.log("Updated can_dm flag to 'true' in DB for " + message.channel.recipient.username + "#" + message.channel.recipient.discriminator)
+                        });
+                    }).catch(error => {
+                        console.log('Failed to send message to registered user.');
+                        console.log(error);
+                    });
+                }
+            });
+        }
+        message.delete();
+    }
 });
 
 //
