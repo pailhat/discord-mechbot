@@ -191,7 +191,7 @@ bot.on("message", async (message) => {
     // If they've registered then they'll be able to see the rest of the server and the verify channel will be hidden so noon spams it.
     // Channel will be set to slow mode and only allow messages every 15 seconds
     if (message.channel.id == process.env.CHANNEL_ID_VERIFY) {
-        if (message.content == VERIFY_STRING) {
+        if (message.content.toLowerCase() == VERIFY_STRING) {
             let query = "SELECT COUNT(*) as count from mechbot_discorduser where id = " + message.member.user.id;
             client.query(query, (err, res) => {
                 if (res.rows.pop().count == 0) {
